@@ -43,19 +43,21 @@ def bplEditionLinksScraper(driver, bpl="https://www.espncricinfo.com/records/tro
     driver.save_screenshot("error_check.png")
 
 
-def matches_links(driver, bpl_edition_link):
+def matches_links(driver, season_id, start_match_id, bpl_edition_link):
   driver.get(bpl_edition_link)
   matches_container = driver.find_element(By.CSS_SELECTOR, ".ds-w-full.ds-bg-fill-content-prime.ds-overflow-hidden.ds-rounded-xl.ds-border.ds-border-line.ds-mb-4")
   matches = matches_container.find_elements(By.XPATH, "./div[2]/a")
 
-  all_matches = []
+  data = []
+  match_id = start_match_id
   for match in matches:
     url = match.get_attribute("href")
     if url:
-      match_info = {
+      data.append({
+        "season_id": season_id,
+        "match_id": match_id,
         "match_link": url,
-        "edition_url": bpl_edition_link,
-      }
-      all_matches.append(match_info)
-        
+      })
+      match_id += 1
+  all_matches = pd.DataFrame(data)    
   return all_matches
