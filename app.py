@@ -1,14 +1,24 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from scrapers.bpl_links import matches_links
+from selenium.webdriver.firefox.options import Options
+from scrapers.bpl_links import bplEditionLinksScraper
+import os 
+import pandas as pd
 
-chrome_options = Options()
-chrome_options.add_experimental_option("detach", True)
+def setup():
+  options = Options()
+  options.set_preference("dom.webdriver.enabled", False)
+  options.set_preference("useAutomationExtension", False)
 
-driver = webdriver.Chrome(options=chrome_options)
+  driver = webdriver.Firefox(options=options)
+  return driver
 
-bpl_edition_link = "https://www.espncricinfo.com/series/bangladesh-premier-league-2011-12-547342/match-schedule-fixtures-and-results"
-lists = matches_links(driver=driver, bpl_edition_link=bpl_edition_link)
-for i in lists:
-  print(i)
-driver.quit()
+def teardown(driver):
+  driver.quit()
+
+driver = setup()
+
+try:
+  df = pd.read_csv("data/bpl_history.csv")
+  print(df.info())
+finally:
+  teardown(driver=driver)
