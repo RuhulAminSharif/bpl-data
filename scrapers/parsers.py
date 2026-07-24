@@ -15,14 +15,14 @@ def parse_teams(match_data: dict) -> Tuple[Dict, Dict]:
 
     t1_raw = _safe_get_list(teams_list, 0)
     t2_raw = _safe_get_list(teams_list, 1)
-
+    
     team1 = {
-        "id": t1_raw.get("team", {}).get("id"),
+        "id": t1_raw.get("team", {}).get("objectId"),
         "name": t1_raw.get("team", {}).get("longName"),
         "captain_id": t1_raw.get("captain", {}).get("objectId"),
     }
     team2 = {
-        "id": t2_raw.get("team", {}).get("id"),
+        "id": t2_raw.get("team", {}).get("objectId"),
         "name": t2_raw.get("team", {}).get("longName"),
         "captain_id": t2_raw.get("captain", {}).get("objectId"),
     }
@@ -39,7 +39,7 @@ def parse_players(
     t1_player_ids, t2_player_ids = [], []
 
     for tp in team_players:
-        team_id = tp.get("team", {}).get("id")
+        team_id = tp.get("team", {}).get("objectId")
         players = tp.get("players", [])
         players_info = [
             {
