@@ -2,10 +2,39 @@ import functools
 import os
 import sys
 import pandas as pd
+import re
 
 # Set the root project directory in system path
 current_dir = os.getcwd()
 sys.path.append(current_dir)
+
+
+def standardize_match_title(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardizes casing and standardizes playoff match titles across all seasons."""
+    if "match_title" not in df.columns:
+        return df
+
+    df["match_title"] = df["match_title"].astype(str).str.strip().str.title()
+    df["match_title"] = df["match_title"].apply(
+        lambda x: re.sub(
+            r"(\d+)(St|Nd|Rd|Th)\b", lambda m: m.group(1) + m.group(2).lower(), x
+        )
+    )
+
+    playoff_mapping = {
+        "1st Semi-Final": "Eliminator",
+        "2nd Semi-Final": "Qualifier 2",
+        "Semi-Final": "Eliminator",
+        "Elimination Final": "Eliminator",
+        "Race To The Final": "Qualifier 2",
+        "1st Qualifier": "Qualifier 1",
+        "2nd Qualifier": "Qualifier 2",
+    }
+
+    # Apply playoff mapping
+    df["match_title"] = df["match_title"].replace(playoff_mapping)
+
+    return df
 
 
 def int_col_conversion(df: pd.DataFrame, int_cols: list) -> pd.DataFrame:
@@ -121,6 +150,7 @@ def matches_data() -> pd.DataFrame:
         "result_type",
     ]
     df = str_col_conversion(df, str_cols)
+    df = standardize_match_title(df=df)
 
     return df
 
