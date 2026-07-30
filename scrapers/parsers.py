@@ -17,12 +17,12 @@ def parse_teams(match_data: dict) -> Tuple[Dict, Dict]:
     t2_raw = _safe_get_list(teams_list, 1)
     
     team1 = {
-        "id": t1_raw.get("team", {}).get("objectId"),
+        "id": t1_raw.get("team", {}).get("id"),
         "name": t1_raw.get("team", {}).get("longName"),
         "captain_id": t1_raw.get("captain", {}).get("objectId"),
     }
     team2 = {
-        "id": t2_raw.get("team", {}).get("objectId"),
+        "id": t2_raw.get("team", {}).get("id"),
         "name": t2_raw.get("team", {}).get("longName"),
         "captain_id": t2_raw.get("captain", {}).get("objectId"),
     }
@@ -39,7 +39,7 @@ def parse_players(
     t1_player_ids, t2_player_ids = [], []
 
     for tp in team_players:
-        team_id = tp.get("team", {}).get("objectId")
+        team_id = tp.get("team", {}).get("id")
         players = tp.get("players", [])
         players_info = [
             {
@@ -256,3 +256,20 @@ def collect_full_match_data(core_data: dict, season_id: int, match_id: int) -> T
         pd.DataFrame(reserve_umpire_data),
         pd.DataFrame(match_referee_data),
     )
+
+def parse_deliveries(ballItems: list) -> pd.DataFrame:
+    parsed_deliveries = []
+    for inningsBalls in ballItems:
+        with open("innings.json", "w") as file:
+            import json
+            json.dump(inningsBalls, file)
+        # for oneBall in inningsBalls:
+        #     print("ball processing")
+            
+        #     break
+        delivery = {
+        }
+        parsed_deliveries.append(delivery)
+        # break
+
+    return pd.DataFrame(parsed_deliveries)
