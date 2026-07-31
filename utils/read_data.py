@@ -178,7 +178,7 @@ def players_data() -> pd.DataFrame:
     if df.empty:
         return df
 
-    int_cols = ["player_id"]
+    int_cols = ["player_id", "countryId"]
     str_cols = ["player_name"]
 
     df = int_col_conversion(df, int_cols)
@@ -260,6 +260,22 @@ def match_referees_data() -> pd.DataFrame:
 
     int_cols = ["match_referee_id"]
     str_cols = ["match_referee_data_name"]
+
+    df = int_col_conversion(df, int_cols)
+    df = str_col_conversion(df, str_cols)
+
+    return df
+
+
+@functools.cache
+def country_data() -> pd.DataFrame:
+    """Reads and cleans Match Referees data from data/match_referees.csv."""
+    df = _load_csv_safely("country.csv")
+    if df.empty:
+        return df
+
+    int_cols = ["countryId"]
+    str_cols = ["country"]
 
     df = int_col_conversion(df, int_cols)
     df = str_col_conversion(df, str_cols)

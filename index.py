@@ -14,6 +14,7 @@ from utils.read_data import (
     reserve_umpires_data,
     tv_umpire_data,
     match_referees_data,
+    country_data,
 )
 from src.analysis.bpl_overview import (
     apply_custom_css,
@@ -31,12 +32,16 @@ from src.analysis.bpl_overview import (
     get_bpl_winner_per_season,
     get_most_titled_team,
     plot_most_titled_team,
+    get_total_players,
+    get_total_country,
+    get_bangaladeshi_players_count,
 )
 
 
 # Load data
 @st.cache_data(ttl=3600)
 def fetch_bpl_data() -> tuple[
+    pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
@@ -58,6 +63,7 @@ def fetch_bpl_data() -> tuple[
     reserve_umpires = reserve_umpires_data()
     tv_umpire = tv_umpire_data()
     match_referees = match_referees_data()
+    country = country_data()
     return (
         bpl_history,
         matches_list,
@@ -69,6 +75,7 @@ def fetch_bpl_data() -> tuple[
         reserve_umpires,
         tv_umpire,
         match_referees,
+        country,
     )
 
 
@@ -87,6 +94,7 @@ def main():
             reserve_umpires,
             tv_umpire,
             match_referees,
+            country,
         ) = fetch_bpl_data()
     except FileNotFoundError:
         st.error("Dataset files not found in data/ directory. Please add data.")
@@ -123,21 +131,34 @@ def main():
         # Container 1: High Level Stats
         with st.container():
             st.markdown("#### 📈 Key Tournament Metrics")
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric("Total Seasons", get_total_seasons(bpl_history))
             c2.metric("Matches Played", get_total_matches(matches))
             c3.metric("Total Runs Scored", f"{get_total_runs(matches):,}")
             c4.metric("Total Wickets Fallen", f"{get_total_wickets(matches):,}")
-
-            c5, c6, c7, c8, c9 = st.columns(5)
             c5.metric("Participating Teams", get_total_teams(teams))
-            c6.metric("Venues Used", get_total_venues(venues))
-            c7.metric("Host Cities", get_total_cities(venues))
 
+            c6, c7, c8, c9, c10 = st.columns(5)
+            total_players = get_total_players(players=players)
+            total_bd_players = get_bangaladeshi_players_count(
+                players=players, country=country
+            )
+            c6.metric("Players played", total_players)
+            c7.metric("Players from", get_total_country(players=players), "countries")
+            c8.metric(
+                "Bangladeshi Players",
+                total_bd_players,
+            )
+            c9.metric("Foreign Players", total_players - total_bd_players)
+            c10.metric("Venues Used", get_total_venues(venues))
+            
+            c11, c12, c13, c14, c15 = st.columns(5)
+
+            c11.metric("Host Cities", get_total_cities(venues))
             # Highest Team Score
             high_score = get_highest_team_score(matches, teams)
             if high_score:
-                c8.metric(
+                c12.metric(
                     "Highest Team Score",
                     f"{high_score['score']} Runs",
                     delta=high_score["team_name"],
@@ -145,7 +166,7 @@ def main():
             low_score = get_lowest_team_score(matches, teams)
 
             if low_score:
-                c9.metric(
+                c13.metric(
                     label="Lowest Team Score (Completed)",
                     value=f"{low_score['score']} Runs",
                     delta=f"Team: {low_score['team_name']}",

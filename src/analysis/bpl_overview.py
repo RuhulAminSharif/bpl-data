@@ -286,4 +286,26 @@ def get_match_time_distribution(matches: pd.DataFrame):
             margin=dict(l=10, r=10, t=40, b=20),
         )
 
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width="stretch")
+
+
+def get_total_players(players: pd.DataFrame) -> int:
+    return len(players)
+
+
+def get_total_country(players: pd.DataFrame) -> int:
+    return len(players["countryId"].unique())
+
+
+def get_bangaladeshi_players_count(players: pd.DataFrame, country: pd.DataFrame) -> int:
+    bd = country[country["country"] == "Bangladesh"]
+
+    # Get the countryId value
+    if bd.empty:
+        return 0  # Bangladesh not found in country table
+
+    bd_country_id = bd["countryId"].iloc[0]
+
+    # Filter players from Bangladesh
+    local_players = players[players["countryId"] == bd_country_id]
+    return len(local_players)
