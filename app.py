@@ -90,8 +90,6 @@ def collect_match_details(ci: CricinfoClient, matches_list: pd.DataFrame) -> tup
         Series_Slug = row.Series_Slug
         Match_Slug = row.Match_Slug
         print("Processing =>", Match_ID)
-        if Match_ID == 317 or Match_ID == 318:
-            continue
         core_data = ci.match_scorecard(str(Series_Slug), str(Match_Slug))
         (
             match_data,

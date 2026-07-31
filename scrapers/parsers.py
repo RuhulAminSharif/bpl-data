@@ -15,16 +15,20 @@ def parse_teams(match_data: dict) -> Tuple[Dict, Dict]:
 
     t1_raw = _safe_get_list(teams_list, 0)
     t2_raw = _safe_get_list(teams_list, 1)
-    
+
     team1 = {
-        "id": t1_raw.get("team", {}).get("id"),
-        "name": t1_raw.get("team", {}).get("longName"),
-        "captain_id": t1_raw.get("captain", {}).get("objectId"),
+        "id": t1_raw.get("team", {}).get("id") if t1_raw.get("team") else None,
+        "name": t1_raw.get("team", {}).get("longName") if t1_raw.get("team") else None,
+        "captain_id": (
+            t1_raw.get("captain", {}).get("objectId") if t1_raw.get("captain") else None
+        ),
     }
     team2 = {
-        "id": t2_raw.get("team", {}).get("id"),
-        "name": t2_raw.get("team", {}).get("longName"),
-        "captain_id": t2_raw.get("captain", {}).get("objectId"),
+        "id": t2_raw.get("team", {}).get("id") if t2_raw.get("team") else None,
+        "name": t2_raw.get("team", {}).get("longName") if t2_raw.get("team") else None,
+        "captain_id": (
+            t2_raw.get("captain", {}).get("objectId") if t2_raw.get("captain") else None
+        ),
     }
     return team1, team2
 
@@ -257,18 +261,19 @@ def collect_full_match_data(core_data: dict, season_id: int, match_id: int) -> T
         pd.DataFrame(match_referee_data),
     )
 
+
 def parse_deliveries(ballItems: list) -> pd.DataFrame:
     parsed_deliveries = []
     for inningsBalls in ballItems:
         with open("innings.json", "w") as file:
             import json
+
             json.dump(inningsBalls, file)
         # for oneBall in inningsBalls:
         #     print("ball processing")
-            
+
         #     break
-        delivery = {
-        }
+        delivery = {}
         parsed_deliveries.append(delivery)
         # break
 
