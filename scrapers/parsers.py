@@ -49,6 +49,7 @@ def parse_players(
             {
                 "player_id": p.get("player", {}).get("objectId"),
                 "player_name": p.get("player", {}).get("longName"),
+                "countryId": p.get("player", {}).get("countryTeamId"),
             }
             for p in players
         ]
@@ -264,17 +265,17 @@ def collect_full_match_data(core_data: dict, season_id: int, match_id: int) -> T
 
 def parse_deliveries(ballItems: list) -> pd.DataFrame:
     parsed_deliveries = []
-    for inningsBalls in ballItems:
-        with open("innings.json", "w") as file:
-            import json
+    # for inningsBalls in ballItems:
+    #     with open("innings.json", "w") as file:
+    #         import json
 
-            json.dump(inningsBalls, file)
-        # for oneBall in inningsBalls:
-        #     print("ball processing")
+    #         json.dump(inningsBalls, file)
+    #     # for oneBall in inningsBalls:
+    #     #     print("ball processing")
 
-        #     break
-        delivery = {}
-        parsed_deliveries.append(delivery)
-        # break
+    #     #     break
+    #     delivery = {}
+    #     parsed_deliveries.append(delivery)
+    #     # break
 
     return pd.DataFrame(parsed_deliveries)
