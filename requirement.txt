@@ -1,7 +1,7 @@
 selenium
-numpy>=2.0.0
-pandas>=2.2.0
-requests>=2.32.0
+numpy
+pandas
+requests
 cricdata==0.3.2
-streamlit>=1.40.0
-plotly>=5.20.0
+streamlit
+plotly
