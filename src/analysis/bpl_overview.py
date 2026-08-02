@@ -230,11 +230,6 @@ def plot_most_titled_team(df_titles: pd.DataFrame):
     st.plotly_chart(fig, width="stretch")
 
 
-import pandas as pd
-import plotly.express as px
-import streamlit as st
-
-
 def get_match_time_distribution(matches: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """Pure data function: Extracts lighting condition counts and percentages."""
     if matches.empty or "floodlit" not in matches.columns:
