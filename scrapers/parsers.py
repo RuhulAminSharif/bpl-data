@@ -310,43 +310,47 @@ def parse_deliveries(ballItems: list) -> pd.DataFrame:
             batsman_runs = 0
             extras_runs = 0
 
-            if play_type == 1:  # Running between wickets
-                batsman_runs = score_value
+            if play_type == "1":  # Running between wickets
+                    batsman_runs = score_value
 
-            elif play_type == 2:  # Dot ball
+            elif play_type == "2":  # Dot ball
                 batsman_runs = 0
 
-            elif play_type == 3:  # Boundary 4
+            elif play_type == "3":  # Boundary 4
                 is_four = True
                 batsman_runs = 4
 
-            elif play_type == 4:  # Boundary 6
+            elif play_type == "4":  # Boundary 6
                 is_six = True
                 batsman_runs = 6
 
-            elif play_type == 5:  # No Ball
+            elif play_type == "5":  # No Ball
                 is_no_ball = True
                 # Score value includes the 1-run penalty + batsman runs
                 extras_runs = 1
                 batsman_runs = max(0, score_value - 1)
 
-            elif play_type == 6:  # Wide
+            elif play_type == "6":  # Wide
                 is_wide = True
                 extras_runs = score_value
                 batsman_runs = 0
 
-            elif play_type == 7:  # Bye
+            elif play_type == "7":  # Bye
                 is_bye = True
                 extras_runs = score_value
                 batsman_runs = 0
 
-            elif play_type == 8:  # Leg Bye
+            elif play_type == "8":  # Leg Bye
                 is_leg_bye = True
                 extras_runs = score_value
                 batsman_runs = 0
 
-            elif play_type == 9:  # Wicket / Out (non-runs)
+            elif play_type == "9":  # Wicket / Out (non-runs)
                 batsman_runs = 0
+            
+            else:
+                # Unknown play type, treat as a regular run-scoring delivery
+                batsman_runs = score_value
 
             # Bowler runs = score_value except for Byes and Leg Byes
             bowler_runs = 0 if (is_bye or is_leg_bye) else score_value
