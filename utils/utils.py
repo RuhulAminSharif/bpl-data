@@ -58,3 +58,22 @@ def set_page_config():
             "<h1 style='text-align: center;'>BPL Data Analysis Dashboard (2012-2026)</h1>",
             unsafe_allow_html=True,
         )
+
+
+def render_metric_grid(metrics_data: list[dict], cols_per_row: int = 5):
+    """Renders a grid of Streamlit metric cards dynamically from a list of dicts.
+
+    Each dict can contain: 'label', 'value', 'delta' (optional), 'delta_color' (optional).
+    """
+    for i in range(0, len(metrics_data), cols_per_row):
+        row_metrics = metrics_data[i : i + cols_per_row]
+        cols = st.columns(cols_per_row)
+
+        for col, m in zip(cols, row_metrics):
+            if m:  # If metric dictionary is present
+                col.metric(
+                    label=m.get("label", ""),
+                    value=m.get("value", ""),
+                    delta=m.get("delta"),
+                    delta_color=m.get("delta_color", "normal"),
+                )
