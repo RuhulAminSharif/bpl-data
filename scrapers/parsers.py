@@ -265,17 +265,135 @@ def collect_full_match_data(core_data: dict, season_id: int, match_id: int) -> T
 
 def parse_deliveries(ballItems: list) -> pd.DataFrame:
     parsed_deliveries = []
-    # for inningsBalls in ballItems:
-    #     with open("innings.json", "w") as file:
-    #         import json
 
-    #         json.dump(inningsBalls, file)
-    #     # for oneBall in inningsBalls:
-    #     #     print("ball processing")
+    if not ballItems:
+        return pd.DataFrame()
 
-    #     #     break
-    #     delivery = {}
-    #     parsed_deliveries.append(delivery)
-    #     # break
+    for inningsBalls in ballItems:
+        if not isinstance(inningsBalls, list):
+            continue
 
-    return pd.DataFrame(parsed_deliveries)
+        for oneBall in inningsBalls:
+            if not isinstance(oneBall, dict):
+                continue
+
+            dismissal_info = oneBall.get("dismissal") or {}
+            is_wicket = bool(dismissal_info.get("dismissal"))
+
+            wicket_kind = None
+            player_out_id = None
+            fielder_id = None
+            is_keeper = None
+
+            if is_wicket:
+                wicket_kind = dismissal_info.get("type")
+                player_out_id = (
+                    dismissal_info.get("batsman", {}).get("athlete", {}).get("id")
+                )
+
+                if wicket_kind not in ["bowled", "lbw"]:
+                    fielder_info = dismissal_info.get("fielder", {})
+                    fielder_id = fielder_info.get("athlete", {}).get("id")
+                    is_keeper = fielder_info.get("isKeeper")
+
+            play_type = oneBall.get("playType", {}).get("id", 0)
+            score_value = oneBall.get("scoreValue", 0)
+
+            is_four = False
+            is_six = False
+            is_wide = False
+            is_no_ball = False
+            is_bye = False
+            is_leg_bye = False
+
+            # Default run allocations
+            batsman_runs = 0
+            extras_runs = 0
+
+            if play_type == 1:  # Running between wickets
+                batsman_runs = score_value
+
+            elif play_type == 2:  # Dot ball
+                batsman_runs = 0
+
+            elif play_type == 3:  # Boundary 4
+                is_four = True
+                batsman_runs = 4
+
+            elif play_type == 4:  # Boundary 6
+                is_six = True
+                batsman_runs = 6
+
+            elif play_type == 5:  # No Ball
+                is_no_ball = True
+                # Score value includes the 1-run penalty + batsman runs
+                extras_runs = 1
+                batsman_runs = max(0, score_value - 1)
+
+            elif play_type == 6:  # Wide
+                is_wide = True
+                extras_runs = score_value
+                batsman_runs = 0
+
+            elif play_type == 7:  # Bye
+                is_bye = True
+                extras_runs = score_value
+                batsman_runs = 0
+
+            elif play_type == 8:  # Leg Bye
+                is_leg_bye = True
+                extras_runs = score_value
+                batsman_runs = 0
+
+            elif play_type == 9:  # Wicket / Out (non-runs)
+                batsman_runs = 0
+
+            # Bowler runs = score_value except for Byes and Leg Byes
+            bowler_runs = 0 if (is_bye or is_leg_bye) else score_value
+            is_extra = is_wide or is_no_ball or is_bye or is_leg_bye
+
+            # -----------------------------------------------------------------
+            # 3. CONSTRUCT RECORD
+            # -----------------------------------------------------------------
+            parsed_deliveries.append(
+                {
+                    "innings": oneBall.get("period", 0),
+                    "over": oneBall.get("over", {}).get("number", 0),
+                    "ball": oneBall.get("over", {}).get("ball", 0),
+                    "actual_ball": oneBall.get("over", {}).get("actual", 0),
+                    "batter_id": oneBall.get("batsman", {})
+                    .get("athlete", {})
+                    .get("id"),
+                    "bowler_id": oneBall.get("bowler", {}).get("athlete", {}).get("id"),
+                    "play_type": play_type,
+                    "score_value": score_value,
+                    "batsman_runs": batsman_runs,
+                    "bowler_runs": bowler_runs,
+                    "extras_runs": extras_runs,
+                    "total_runs": score_value,
+                    "is_four": is_four,
+                    "is_six": is_six,
+                    "is_extra": is_extra,
+                    "is_wide": is_wide,
+                    "is_no_ball": is_no_ball,
+                    "is_bye": is_bye,
+                    "is_leg_bye": is_leg_bye,
+                    "is_wicket": is_wicket,
+                    "wicket_kind": wicket_kind,
+                    "player_out_id": player_out_id,
+                    "fielder_id": fielder_id,
+                    "is_keeper": is_keeper,
+                }
+            )
+
+    df = pd.DataFrame(parsed_deliveries)
+
+    if df.empty:
+        return df
+
+    id_cols = ["batter_id", "bowler_id", "player_out_id", "fielder_id"]
+    for col in id_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    return df

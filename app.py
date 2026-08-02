@@ -1,4 +1,6 @@
 import os
+import time
+import random
 from typing import Tuple, cast
 import pandas as pd
 from cricdata import CricinfoClient
@@ -126,21 +128,69 @@ def collect_match_details(ci: CricinfoClient, matches_list: pd.DataFrame) -> tup
     )
 
 
-def collect_match_deliveries(ci: CricinfoClient, matches_list: pd.DataFrame):
+def collect_match_deliveries(
+    ci: CricinfoClient,
+    matches_list: pd.DataFrame,
+    deliveries_path: str,
+    delay_range: tuple[float, float] = (15, 20),
+    max_retries: int = 3,
+) -> list[pd.DataFrame]:
 
     deliveries = []
+    if not os.path.exists(deliveries_path):
+        pd.DataFrame().to_csv(deliveries_path, index=False)
+
     for row in matches_list.itertuples(index=False):
         Season_ID = row.Season_ID
         Match_ID = row.Match_ID
         Series_Slug = row.Series_Slug
         Match_Slug = row.Match_Slug
-        print("Processing =>", Match_ID)
-        if Match_ID == 317 or Match_ID == 318:
+        print(f"Processing => Match ID: {Match_ID}")
+        ballItems = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                ballItems = ci.match_ball_by_ball(str(Series_Slug), str(Match_Slug))
+                break  # Request succeeded, exit retry loop
+
+            except Exception as e:
+                error_msg = str(e)
+                # Check for 502 or server errors
+                if (
+                    "502" in error_msg
+                    or "Server Error" in error_msg
+                    or attempt < max_retries
+                ):
+                    wait_time = attempt * 10 + random.uniform(1.0, 2.5)
+                    print(
+                        f"Attempt {attempt}/{max_retries} failed for Match {Match_ID} ({e}). "
+                        f"Retrying in {wait_time:.1f}s..."
+                    )
+                    time.sleep(wait_time)
+                else:
+                    print(
+                        f"Permanent failure for Match {Match_ID} after {max_retries} attempts: {e}"
+                    )
+
+        # If all retry attempts failed, skip to next match
+        if ballItems is None:
             continue
-        ballItems = ci.match_ball_by_ball(str(Series_Slug), str(Match_Slug))
-        delivery_data = parse_deliveries(ballItems=ballItems)
-        deliveries.append(delivery_data)
-        break
+        try:
+            delivery_data = parse_deliveries(ballItems=ballItems)
+
+            # Add match metadata to the delivery data
+            if not delivery_data.empty:
+                delivery_data["match_id"] = Match_ID
+                delivery_data["season_id"] = Season_ID
+                deliveries.append(delivery_data)
+                print(f"Processed {len(delivery_data)} deliveries for Match {Match_ID}")
+            else:
+                print(f"No deliveries found for Match {Match_ID}")
+
+        except Exception as e:
+            print(f"Error processing Match {Match_ID}: {e}")
+            continue
+        polite_delay = random.uniform(delay_range[0], delay_range[1])
+        time.sleep(polite_delay)
     return deliveries
 
 
@@ -159,44 +209,44 @@ if __name__ == "__main__":
     else:
         matches_list = pd.read_csv(matches_list_path)
 
-    (
-        matches,
-        teams,
-        venues,
-        players,
-        umpires,
-        tv_umpire,
-        reserve_umpire,
-        match_referee,
-    ) = collect_match_details(ci=client, matches_list=matches_list)
+    # (
+    #     matches,
+    #     teams,
+    #     venues,
+    #     players,
+    #     umpires,
+    #     tv_umpire,
+    #     reserve_umpire,
+    #     match_referee,
+    # ) = collect_match_details(ci=client, matches_list=matches_list)
 
-    deliveries = collect_match_deliveries(ci=client, matches_list=matches_list)
+    # pd.concat(matches, ignore_index=True).to_csv(
+    #     os.path.join(DATA_DIR, "matches.csv"), index=False
+    # )
+    # pd.concat(teams, ignore_index=True).drop_duplicates(subset=["team_id"]).to_csv(
+    #     os.path.join(DATA_DIR, "teams.csv"), index=False
+    # )
+    # pd.concat(venues, ignore_index=True).drop_duplicates(subset=["id"]).to_csv(
+    #     os.path.join(DATA_DIR, "venues.csv"), index=False
+    # )
+    # pd.concat(players, ignore_index=True).drop_duplicates(subset=["player_id"]).to_csv(
+    #     os.path.join(DATA_DIR, "players.csv"), index=False
+    # )
+    # pd.concat(umpires, ignore_index=True).drop_duplicates(subset=["umpire_id"]).to_csv(
+    #     os.path.join(DATA_DIR, "umpires.csv"), index=False
+    # )
+    # pd.concat(tv_umpire, ignore_index=True).drop_duplicates(
+    #     subset=["tv_umpire_id"]
+    # ).to_csv(os.path.join(DATA_DIR, "tv_umpire.csv"), index=False)
+    # pd.concat(reserve_umpire, ignore_index=True).drop_duplicates(
+    #     subset=["reserve_umpire_id"]
+    # ).to_csv(os.path.join(DATA_DIR, "reserve_umpires.csv"), index=False)
+    # pd.concat(match_referee, ignore_index=True).drop_duplicates(
+    #     subset=["match_referee_id"]
+    # ).to_csv(os.path.join(DATA_DIR, "match_referees.csv"), index=False)
 
-    pd.concat(matches, ignore_index=True).to_csv(
-        os.path.join(DATA_DIR, "matches.csv"), index=False
+    deliveries_path = os.path.join(DATA_DIR, "deliveries.csv")
+    deliveries = collect_match_deliveries(
+        ci=client, matches_list=matches_list, deliveries_path=deliveries_path
     )
-    pd.concat(teams, ignore_index=True).drop_duplicates(subset=["team_id"]).to_csv(
-        os.path.join(DATA_DIR, "teams.csv"), index=False
-    )
-    pd.concat(venues, ignore_index=True).drop_duplicates(subset=["id"]).to_csv(
-        os.path.join(DATA_DIR, "venues.csv"), index=False
-    )
-    pd.concat(players, ignore_index=True).drop_duplicates(subset=["player_id"]).to_csv(
-        os.path.join(DATA_DIR, "players.csv"), index=False
-    )
-    pd.concat(umpires, ignore_index=True).drop_duplicates(subset=["umpire_id"]).to_csv(
-        os.path.join(DATA_DIR, "umpires.csv"), index=False
-    )
-    pd.concat(tv_umpire, ignore_index=True).drop_duplicates(
-        subset=["tv_umpire_id"]
-    ).to_csv(os.path.join(DATA_DIR, "tv_umpire.csv"), index=False)
-    pd.concat(reserve_umpire, ignore_index=True).drop_duplicates(
-        subset=["reserve_umpire_id"]
-    ).to_csv(os.path.join(DATA_DIR, "reserve_umpires.csv"), index=False)
-    pd.concat(match_referee, ignore_index=True).drop_duplicates(
-        subset=["match_referee_id"]
-    ).to_csv(os.path.join(DATA_DIR, "match_referees.csv"), index=False)
-
-    pd.concat(deliveries, ignore_index=True).to_csv(
-        os.path.join(DATA_DIR, "deliveries.csv"), index=False
-    )
+    pd.concat(deliveries, ignore_index=True).to_csv(deliveries_path, index=False)
