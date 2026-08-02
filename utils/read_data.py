@@ -281,3 +281,29 @@ def country_data() -> pd.DataFrame:
     df = str_col_conversion(df, str_cols)
 
     return df
+
+
+@functools.cache
+def deliveries_data() -> pd.DataFrame:
+
+    df = _load_csv_safely("deliveries.csv")
+    if df.empty:
+        return df
+    int_cols = [
+        "innings",
+        "over",
+        "ball",
+        "actual_ball",
+        "batter_id",
+        "bowler_id",
+        "batsman_runs",
+        "bowler_runs",
+        "extras_runs",
+        "total_runs",
+        "player_out_id",
+        "fielder_id",
+    ]
+    str_cols = ["play_type", "wicket_kind"]
+    # df = int_col_conversion(df, int_cols)
+    # df = str_col_conversion(df, str_cols)
+    return df
