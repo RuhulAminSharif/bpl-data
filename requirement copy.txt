@@ -1,0 +1,7 @@
+selenium
+numpy==2.5.1
+pandas==3.0.5
+requests==2.34.2
+cricdata==0.3.2
+streamlit==1.60.0
+plotly==6.9.0
