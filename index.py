@@ -34,6 +34,17 @@ from src.analysis.bpl_overview import (
     plot_most_titled_team,
     plot_match_time_distribution,
 )
+
+from src.analysis.bpl_team import (
+    get_team_comprehensive_stats,
+    get_team_indepth_toss_stats,
+    get_team_trophies,
+    get_top_5_batters,
+    get_top_5_bowlers,
+    plot_decision_impact_chart,
+    plot_season_wise_performance,
+    plot_toss_impact_chart,
+)
 from utils.read_data import (
     bpl_history_data,
     country_data,
@@ -324,6 +335,219 @@ def main():
 
             with col_chart:
                 plot_match_time_distribution(df_counts)
+
+    with tab_team:
+        st.markdown(
+            "<h2 style='text-align: center; margin-bottom: 20px;'>📊 Team Comprehensive Analysis</h2>",
+            unsafe_allow_html=True,
+        )
+
+        if teams.empty:
+            st.info("No team data available.")
+        else:
+            selected_team_name = st.selectbox(
+                "🏏 Select Team:",
+                options=teams["team_name"].tolist(),
+                index=0,
+            )
+
+            selected_team_row = teams[teams["team_name"] == selected_team_name].iloc[0]
+            selected_team_id = int(selected_team_row["team_id"])
+
+            trophies = get_team_trophies(selected_team_id, matches)
+            stats = get_team_comprehensive_stats(
+                selected_team_id, matches, deliveries, teams, venues
+            )
+
+            if stats:
+                st.markdown("---")
+
+                # -------------------------------------------------------------
+                # SECTION 1: KEY TEAM HIGHLIGHTS
+                # -------------------------------------------------------------
+                st.markdown("### 🏆 Franchise Overview & Highlights")
+                c1, c2, c3, c4, c5 = st.columns(5)
+
+                with c1:
+                    render_feature_card("BPL Titles", f"{trophies} Trophies", icon="🏆")
+                with c2:
+                    render_feature_card(
+                        "Matches Played", stats["total_matches"], icon="🏏"
+                    )
+                with c3:
+                    render_feature_card(
+                        "Matches Won / Lost",
+                        f"{stats['wins']} W - {stats['losses']} L",
+                        subtitle=f"Ties/NR: {stats['no_results']}",
+                        icon="✅",
+                    )
+                with c4:
+                    render_feature_card(
+                        "Win Percentage",
+                        f"{stats['win_percentage']:.1f}%",
+                        icon="📈",
+                    )
+                with c5:
+                    render_feature_card(
+                        "Boundaries (4s / 6s)",
+                        f"{stats['total_4s']} / {stats['total_6s']}",
+                        icon="💥",
+                    )
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                c6, c7, c8 = st.columns(3)
+                with c6:
+                    render_feature_card(
+                        "Most Wins Against",
+                        stats["most_win_against"],
+                        icon="🗡️",
+                    )
+                with c7:
+                    render_feature_card(
+                        "Preferred Venue",
+                        stats["most_successful_venue"],  # Includes (X Wins)
+                        icon="🏟️",
+                    )
+                with c8:
+                    render_feature_card(
+                        "Highest Team Score",
+                        stats["highest_score_vs_opp"],
+                        icon="🔥",
+                    )
+
+                st.markdown("---")
+
+                # -------------------------------------------------------------
+                # SECTION 2: TOSS & DECISION ANALYSIS
+                # -------------------------------------------------------------
+                st.markdown("### 🪙 In-Depth Toss & Decision Analysis")
+                toss_stats = get_team_indepth_toss_stats(selected_team_id, matches)
+
+                if toss_stats:
+                    # Win Rate Calculations
+                    tw_pct = (
+                        (
+                            toss_stats["toss_won_match_won"]
+                            / toss_stats["toss_won_total"]
+                            * 100
+                        )
+                        if toss_stats["toss_won_total"] > 0
+                        else 0
+                    )
+                    tl_pct = (
+                        (
+                            toss_stats["toss_lost_match_won"]
+                            / toss_stats["toss_lost_total"]
+                            * 100
+                        )
+                        if toss_stats["toss_lost_total"] > 0
+                        else 0
+                    )
+                    bat_pct = (
+                        (
+                            toss_stats["bat_first_wins"]
+                            / toss_stats["bat_first_total"]
+                            * 100
+                        )
+                        if toss_stats["bat_first_total"] > 0
+                        else 0
+                    )
+                    field_pct = (
+                        (
+                            toss_stats["field_first_wins"]
+                            / toss_stats["field_first_total"]
+                            * 100
+                        )
+                        if toss_stats["field_first_total"] > 0
+                        else 0
+                    )
+
+                    tc1, tc2, tc3, tc4 = st.columns(4)
+
+                    with tc1:
+                        render_feature_card(
+                            title="Toss Won Record",
+                            value=f"{toss_stats['toss_won_match_won']}W - {toss_stats['toss_won_match_lost']}L",
+                            subtitle=f"{tw_pct:.1f}% Win Rate",
+                            icon="🪙",
+                        )
+                    with tc2:
+                        render_feature_card(
+                            title="Toss Lost Record",
+                            value=f"{toss_stats['toss_lost_match_won']}W - {toss_stats['toss_lost_match_lost']}L",
+                            subtitle=f"{tl_pct:.1f}% Win Rate",
+                            icon="🔥",
+                        )
+                    with tc3:
+                        render_feature_card(
+                            title="Batting 1st Record",
+                            value=f"{toss_stats['bat_first_wins']}W - {toss_stats['bat_first_losses']}L",
+                            subtitle=f"{bat_pct:.1f}% Win Rate",
+                            icon="🏏",
+                        )
+                    with tc4:
+                        render_feature_card(
+                            title="Fielding 1st Record",
+                            value=f"{toss_stats['field_first_wins']}W - {toss_stats['field_first_losses']}L",
+                            subtitle=f"{field_pct:.1f}% Win Rate",
+                            icon="🏃",
+                        )
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Charts
+                    chart_col1, chart_col2 = st.columns(2)
+                    with chart_col1:
+                        plot_toss_impact_chart(toss_stats)
+                    with chart_col2:
+                        plot_decision_impact_chart(toss_stats)
+
+                st.markdown("---")
+
+                # -------------------------------------------------------------
+                # SECTION 3: TOP PERFORMERS & SEASON PROGRESS
+                # -------------------------------------------------------------
+                col_left, col_right = st.columns([1, 1])
+
+                with col_left:
+                    st.markdown("### 🌟 All-Time Top Performers")
+                    top_batters = get_top_5_batters(
+                        selected_team_id, deliveries, matches, players
+                    )
+                    top_bowlers = get_top_5_bowlers(
+                        selected_team_id, deliveries, matches, players
+                    )
+
+                    bat_tab, bowl_tab = st.tabs(
+                        ["🏏 Top 5 Batters", "🎯 Top 5 Bowlers"]
+                    )
+                    with bat_tab:
+                        if not top_batters.empty:
+                            st.dataframe(
+                                top_batters,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+                        else:
+                            st.info("No batting records found for this team.")
+
+                    with bowl_tab:
+                        if not top_bowlers.empty:
+                            st.dataframe(
+                                top_bowlers,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+                        else:
+                            st.info("No bowling records found for this team.")
+
+                with col_right:
+                    st.markdown("### 📅 Season Progress")
+                    plot_season_wise_performance(selected_team_id, matches, bpl_history)
+
+            else:
+                st.warning("No performance record found for this team.")
 
 
 if __name__ == "__main__":
