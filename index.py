@@ -45,6 +45,11 @@ from src.analysis.bpl_team import (
     plot_season_wise_performance,
     plot_toss_impact_chart,
 )
+from src.analysis.bpl_player import (
+    get_player_batting_stats,
+    get_player_bowling_stats,
+    get_player_knockout_stats,
+)
 from utils.read_data import (
     bpl_history_data,
     country_data,
@@ -526,7 +531,7 @@ def main():
                         if not top_batters.empty:
                             st.dataframe(
                                 top_batters,
-                                use_container_width=True,
+                                width="stretch",
                                 hide_index=True,
                             )
                         else:
@@ -536,7 +541,7 @@ def main():
                         if not top_bowlers.empty:
                             st.dataframe(
                                 top_bowlers,
-                                use_container_width=True,
+                                width="stretch",
                                 hide_index=True,
                             )
                         else:
@@ -548,6 +553,163 @@ def main():
 
             else:
                 st.warning("No performance record found for this team.")
+
+    with tab_player:
+        st.markdown(
+            "<h2 style='text-align: center; margin-bottom: 20px;'>👤 Player Career & Performance Stats</h2>",
+            unsafe_allow_html=True,
+        )
+
+        if players.empty:
+            st.info("No player data available.")
+        else:
+            # Player Selection Dropdown
+            selected_player_name = st.selectbox(
+                "🏏 Select Player:",
+                options=players["player_name"].tolist(),
+                index=0,
+            )
+
+            selected_player_row = players[
+                players["player_name"] == selected_player_name
+            ].iloc[0]
+            selected_player_id = int(selected_player_row["player_id"])
+
+            st.markdown("---")
+
+            # Sub-tabs for Batting/Fielding and Bowling
+            sub_batting, sub_bowling, sub_knockout = st.tabs(
+                [
+                    "🏏 Batting & Fielding Stats",
+                    "🎯 Bowling Stats",
+                    "🔥 Knockout / Playoff Stats",
+                ]
+            )
+
+            # -----------------------------------------------------------------
+            # SUB-TAB 1: BATTING & FIELDING STATS
+            # -----------------------------------------------------------------
+            with sub_batting:
+                df_bat_overall, df_bat_teams = get_player_batting_stats(
+                    selected_player_id, deliveries, matches, teams, venues
+                )
+
+                if not df_bat_overall.empty:
+                    st.markdown("#### 🌟 Overall Career Batting & Fielding Summary")
+
+                    # Renaming for clean table display
+                    rename_bat = {
+                        "teams_played": "Teams",
+                        "matches": "Matches",
+                        "innings": "Innings",
+                        "not_outs": "NO",
+                        "runs": "Runs",
+                        "highest_score": "HS",
+                        "average": "Avg",
+                        "balls_faced": "BF",
+                        "strike_rate": "SR",
+                        "hundreds": "100s",
+                        "fifties": "50s",
+                        "fours": "4s",
+                        "sixes": "6s",
+                        "catches": "Catches",
+                        "stumpings": "Stumpings",
+                        "powerplay_runs": "PP Runs",
+                        "death_runs": "Death Runs",
+                        "best_venue": "Top Venue",
+                        "most_runs_vs": "Most Runs Vs",
+                        "ducks": "Ducks",
+                    }
+
+                    st.dataframe(
+                        df_bat_overall.rename(columns=rename_bat),
+                        width="stretch",
+                        hide_index=True,
+                    )
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown("#### 🏢 Breakdown by Teams Played")
+                    if not df_bat_teams.empty:
+                        rename_bat_teams = {"team_name": "Team Name", **rename_bat}
+                        st.dataframe(
+                            df_bat_teams.rename(columns=rename_bat_teams),
+                            width="stretch",
+                            hide_index=True,
+                        )
+                else:
+                    st.info("No batting records found for this player.")
+
+            # -----------------------------------------------------------------
+            # SUB-TAB 2: BOWLING STATS
+            # -----------------------------------------------------------------
+            with sub_bowling:
+                df_bowl_overall, df_bowl_teams = get_player_bowling_stats(
+                    selected_player_id, deliveries, matches, teams
+                )
+
+                if not df_bowl_overall.empty:
+                    st.markdown("#### 🌟 Overall Career Bowling Summary")
+
+                    rename_bowl = {
+                        "teams_played": "Teams",
+                        "matches": "Matches",
+                        "innings": "Innings",
+                        "balls_bowled": "Balls",
+                        "runs_conceded": "Runs",
+                        "wickets": "Wkts",
+                        "best_fig_innings": "BBI",
+                        "best_fig_match": "BBM",
+                        "average": "Avg",
+                        "economy": "Econ",
+                        "strike_rate": "SR",
+                        "four_wkt_innings": "4w",
+                        "five_wkt_innings": "5w",
+                        "ten_wkt_innings": "10w",
+                        "best_sr_innings": "Best SR (Inn)",
+                        "best_econ_innings": "Best Econ (Inn)",
+                    }
+
+                    st.dataframe(
+                        df_bowl_overall.rename(columns=rename_bowl),
+                        width="stretch",
+                        hide_index=True,
+                    )
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown("#### 🏢 Breakdown by Teams Played")
+                    if not df_bowl_teams.empty:
+                        rename_bowl_teams = {"team_name": "Team Name", **rename_bowl}
+                        st.dataframe(
+                            df_bowl_teams.rename(columns=rename_bowl_teams),
+                            width="stretch",
+                            hide_index=True,
+                        )
+                else:
+                    st.info("No bowling records found for this player.")
+
+            with sub_knockout:
+                st.markdown("#### 🔥 Performance in Playoff & Knockout Matches")
+                st.caption("Includes Finals, Qualifiers, Eliminators, and Semi-Finals")
+
+                df_ko_bat, df_ko_bowl = get_player_knockout_stats(
+                    selected_player_id, deliveries, matches, teams
+                )
+
+                col1, col2 = st.columns(2)
+
+                st.markdown("##### 🏏 Knockout Batting")
+                if not df_ko_bat.empty and df_ko_bat["Innings"].iloc[0] > 0:
+                    st.dataframe((df_ko_bat), width="stretch", hide_index=True)
+                else:
+                    st.info("No knockout batting records found for this player.")
+
+                st.markdown("##### 🎯 Knockout Bowling")
+                if not df_ko_bowl.empty and df_ko_bowl["Innings"].iloc[0] > 0:
+                    st.dataframe(
+                        (df_ko_bowl), width="stretch", hide_index=True
+                    )
+                else:
+                    st.info("No knockout bowling records found for this player.")
 
 
 if __name__ == "__main__":
